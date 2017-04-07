@@ -176,6 +176,22 @@ if (process.platform === 'darwin') {
         {
             label: 'Bring All to Front',
             role: 'front'
+        },
+        {
+          label: 'New Chat',
+          accelerator: 'CmdOrCtrl+T',
+          role: 'newChat',
+          click(item, focusedWindow) {
+            focusedWindow.webContents.send('shortcut', 'view_create_chat');
+          }
+        },
+        {
+          label: 'Enter Room',
+          accelerator: 'CmdOrCtrl+G',
+          role: 'enterRoom',
+          click(item, focusedWindow) {
+            focusedWindow.webContents.send('shortcut', 'hack_search_room');
+          }
         }
     ]
 } else {
@@ -194,4 +210,3 @@ if (process.platform === 'darwin') {
 }
 
 module.exports = electron.Menu.buildFromTemplate(template)
-

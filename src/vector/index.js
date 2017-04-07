@@ -228,7 +228,9 @@ function onLoadCompleted() {
     }
 }
 
-
+require('electron').ipcRenderer.on('shortcut', (event, action) => {
+  require('matrix-react-sdk/lib/dispatcher').dispatch({ action });
+})
 async function loadApp() {
     const fragparts = parseQsFromFragment(window.location);
     const params = parseQs(window.location);

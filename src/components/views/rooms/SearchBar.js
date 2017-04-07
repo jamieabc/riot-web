@@ -58,7 +58,7 @@ module.exports = React.createClass({
         var allRoomsClasses = classNames({ mx_SearchBar_button : true, mx_SearchBar_unselected : this.state.scope !== 'All' });
 
         return (
-            <div className="mx_SearchBar"> 
+            <div className="mx_SearchBar">
                 <input ref="search_term" className="mx_SearchBar_input" type="text" autoFocus={true} placeholder="Search..." onKeyDown={this.onSearchChange}/>
                 <AccessibleButton className={ searchButtonClasses } onClick={this.onSearch}><img src="img/search-button.svg" width="37" height="37" alt="Search"/></AccessibleButton>
                 <AccessibleButton className={ thisRoomClasses } onClick={this.onThisRoomClick}>This Room</AccessibleButton>

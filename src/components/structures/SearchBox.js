@@ -55,6 +55,9 @@ module.exports = React.createClass({
                     this._clearSearch();
                 }
                 break;
+            case 'hack_search_room':
+                this.refs.search.focus();
+                break;
         }
 */        
     },
