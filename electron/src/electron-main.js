@@ -197,7 +197,7 @@ electron.app.on('ready', () => {
 
     // Create trayIcon icon
     tray.create(mainWindow, {
-        icon_path: icon_path,
+        icon_path: `${__dirname}/../img/osx.png`,
         brand: vectorConfig.brand || 'Riot'
     });
 

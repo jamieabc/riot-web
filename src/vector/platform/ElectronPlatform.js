@@ -66,6 +66,11 @@ export default class ElectronPlatform extends VectorBasePlatform {
         // continue to fail and we might just have to accept that
         // electron's remote RPC is a non-starter for now and use IPC
         try {
+          if (count) {
+            remote.require('./tray').icon().setTitle('unread');
+          } else {
+            remote.require('./tray').icon().setTitle('');
+          }
             remote.app.setBadgeCount(count);
         } catch (e) {
             console.error("Failed to set notification count", e);

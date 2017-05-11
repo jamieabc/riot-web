@@ -30,9 +30,12 @@ exports.hasTray = function hasTray() {
 
 exports.create = function (win, config) {
     // no trays on darwin
-    if (process.platform === 'darwin' || trayIcon) {
-        return;
-    }
+    // if (process.platform === 'darwin' || trayIcon) {
+    //     return;
+    // }
+  if (trayIcon) {
+    return;
+  }
 
     const toggleWin = function () {
         if (win.isVisible() && !win.isMinimized()) {
@@ -65,3 +68,4 @@ exports.create = function (win, config) {
     trayIcon.setContextMenu(contextMenu);
     trayIcon.on('click', toggleWin);
 };
+exports.icon = function() { return trayIcon };
