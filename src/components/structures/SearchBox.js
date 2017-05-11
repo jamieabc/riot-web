@@ -60,6 +60,12 @@ module.exports = React.createClass({
                 break;
         }
 */        
+        switch (payload.action) {
+            // Clear up the text field when a room is selected.
+            case 'hack_search_room':
+                this.refs.search.focus();
+                break;
+        }
     },
 
     onChange: function() {

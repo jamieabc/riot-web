@@ -192,6 +192,15 @@ if (process.platform === 'darwin') {
           click(item, focusedWindow) {
             focusedWindow.webContents.send('shortcut', 'hack_search_room');
           }
+        },
+        {
+          label: 'Instant Paste Image',
+          accelerator: 'CmdOrCtrl+P',
+          role: 'instantPasteImage',
+          click(item, focusedWindow) {
+            focusedWindow.webContents.send('shortcut', 'hack_show_clipboard', { image: electron.clipboard.readImage().toDataURL() });
+            // focusedWindow.webContents.send('shortcut', 'hack_show_clipboard');
+          }
         }
     ]
 } else {
