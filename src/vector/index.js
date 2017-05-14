@@ -228,10 +228,11 @@ function onLoadCompleted() {
     }
 }
 
-require('electron').ipcRenderer.on('shortcut', (event, action, others={}) => {
-  window.debugElectron = require('electron');
-  require('matrix-react-sdk/lib/dispatcher').dispatch({ action, ...others });
-})
+// require('electron').ipcRenderer.on('shortcut', (event, action, others={}) => {
+//   window.debugElectron = require('electron');
+//   require('matrix-react-sdk/lib/dispatcher').dispatch({ action, ...others });
+// });
+
 async function loadApp() {
     const fragparts = parseQsFromFragment(window.location);
     const params = parseQs(window.location);
