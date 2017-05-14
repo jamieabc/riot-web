@@ -17,7 +17,7 @@ limitations under the License.
 'use strict';
 
 var React = require('react');
-var sdk = require('matrix-react-sdk')
+var sdk = require('matrix-react-sdk');
 var dis = require('matrix-react-sdk/lib/dispatcher');
 var rate_limited_func = require('matrix-react-sdk/lib/ratelimitedfunc');
 var AccessibleButton = require('matrix-react-sdk/lib/components/views/elements/AccessibleButton');
@@ -26,46 +26,75 @@ module.exports = React.createClass({
     displayName: 'SearchBox',
 
     propTypes: {
-        collapsed: React.PropTypes.bool,
-        onSearch: React.PropTypes.func,
+      collapsed: React.PropTypes.bool,
+      onSearch: React.PropTypes.func
     },
 
     getInitialState: function() {
         return {
-            searchTerm: "",
+            searchTerm: ""
         };
     },
 
     componentDidMount: function() {
-        this.dispatcherRef = dis.register(this.onAction);
+      this.dispatcherRef = dis.register(this.onAction);
+      document.addEventListener('keydown', this.onKeyDown);
     },
 
     componentWillUnmount: function() {
-        dis.unregister(this.dispatcherRef);
+      dis.unregister(this.dispatcherRef);
+      document.removeEventListener('keydown', this.onKeyDown);
     },
 
     onAction: function(payload) {
         // Disabling this as I find it really really annoying, and was used to the
         // previous behaviour - see https://github.com/vector-im/riot-web/issues/3348
-/*        
         switch (payload.action) {
-            // Clear up the text field when a room is selected.
-            case 'view_room':
-                if (this.refs.search) {
-                    this._clearSearch();
-                }
-                break;
-            case 'hack_search_room':
-                this.refs.search.focus();
-                break;
+        // Clear up the text field when a room is selected.
+        case 'view_room':
+          if (this.refs.search) {
+            this._clearSearch();
+            dis.dispatch({action: 'focus_composer'});
+          }
+          break;
+        case 'hack_search_room':
+          this.refs.search.focus();
+          break;
         }
-*/        
-        switch (payload.action) {
-            // Clear up the text field when a room is selected.
-            case 'hack_search_room':
-                this.refs.search.focus();
-                break;
-        }
+        // Clear up the text field when a room is selected.
+      }
+    },
+
+    onKeyDown: function(ev) {
+      let handled = false;
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      let ctrlCmdOnly;
+      if (isMac) {
+          ctrlCmdOnly = ev.metaKey && !ev.altKey && !ev.ctrlKey && !ev.shiftKey;
+      } else {
+          ctrlCmdOnly = ev.ctrlKey && !ev.altKey && !ev.metaKey && !ev.shiftKey;
+      }
+
+      switch (ev.keyCode) {
+        case 27:    // escape
+          this._clearSearch();
+          dis.dispatch({action: 'focus_composer'});
+          handled = true;
+          break;
+        case 75:              // key k
+          if (ctrlCmdOnly) {
+            if (this.refs.search) {
+              this.refs.search.focus();
+            }
+            handled = true;
+          }
+          break;
+      }
+
+      if (handled) {
+        ev.stopPropagation();
+        ev.preventDefault();
+      }
     },
 
     onChange: function() {
@@ -75,10 +104,10 @@ module.exports = React.createClass({
     },
 
     onSearch: new rate_limited_func(
-        function() {
-            this.props.onSearch(this.refs.search.value);
-        },
-        100
+      function() {
+        this.props.onSearch(this.refs.search.value);
+      },
+      100
     ),
 
     onToggleCollapse: function(show) {
