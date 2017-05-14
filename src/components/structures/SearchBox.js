@@ -62,7 +62,6 @@ module.exports = React.createClass({
           break;
         }
         // Clear up the text field when a room is selected.
-      }
     },
 
     onKeyDown: function(ev) {
