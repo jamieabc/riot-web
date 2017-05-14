@@ -20,13 +20,14 @@ var React = require('react');
 var ReactDOM = require('react-dom');
 var classNames = require('classnames');
 var DropTarget = require('react-dnd').DropTarget;
-var sdk = require('matrix-react-sdk')
+var sdk = require('matrix-react-sdk');
 var dis = require('matrix-react-sdk/lib/dispatcher');
 var Unread = require('matrix-react-sdk/lib/Unread');
 var MatrixClientPeg = require('matrix-react-sdk/lib/MatrixClientPeg');
 var RoomNotifs = require('matrix-react-sdk/lib/RoomNotifs');
 var FormattingUtils = require('matrix-react-sdk/lib/utils/FormattingUtils');
 var AccessibleButton = require('matrix-react-sdk/lib/components/views/elements/AccessibleButton');
+var RoomSubListHeader = require('./RoomSubListHeader');
 
 // turn this on for drop & drag console debugging galore
 var debug = false;
@@ -55,7 +56,7 @@ var roomListTarget = {
 
             component.moveRoomTile(item.room, 0);
         }
-    },
+    }
 };
 
 var RoomSubList = React.createClass({
@@ -71,24 +72,22 @@ var RoomSubList = React.createClass({
 
         order: React.PropTypes.string.isRequired,
 
-        // undefined if no room is selected (eg we are showing settings)
-        selectedRoom: React.PropTypes.string,
-
         startAsHidden: React.PropTypes.bool,
         showSpinner: React.PropTypes.bool, // true to show a spinner if 0 elements when expanded
         collapsed: React.PropTypes.bool.isRequired, // is LeftPanel collapsed?
         onHeaderClick: React.PropTypes.func,
         alwaysShowHeader: React.PropTypes.bool,
+        selectedRoom: React.PropTypes.string,
         incomingCall: React.PropTypes.object,
         onShowMoreRooms: React.PropTypes.func,
-        searchFilter: React.PropTypes.string,
+        searchFilter: React.PropTypes.string
     },
 
     getInitialState: function() {
         return {
             hidden: this.props.startAsHidden || false,
             truncateAt: TRUNCATE_AT,
-            sortedList: [],
+            sortedList: []
         };
     },
 
@@ -99,27 +98,37 @@ var RoomSubList = React.createClass({
         };
     },
 
-    componentWillMount: function() {
-        this.sortList(this.applySearchFilter(this.props.list, this.props.searchFilter), this.props.order);
+  componentWillMount: function() {
+      this.sortList(this.applySearchFilter(this.props.list, this.props.searchFilter), this.props.order);
+      this._fixUndefinedOrder(this.props.list);
     },
 
     componentWillReceiveProps: function(newProps) {
-        // order the room list appropriately before we re-render
-        //if (debug) console.log("received new props, list = " + newProps.list);
-        this.sortList(this.applySearchFilter(newProps.list, newProps.searchFilter), newProps.order);
+      // order the room list appropriately before we re-render
+      //if (debug) console.log("received new props, list = " + newProps.list);
+      this.sortList(this.applySearchFilter(newProps.list, newProps.searchFilter), newProps.order);
+      this._fixUndefinedOrder(this.props.list);
+    },
+
+    onSort: function() {
+      this.sortList(this.applySearchFilter(this.props.list, this.props.searchFilter), this.props.order);
+    },
+
+    onRefresh: function(list, filter) {
+      this.forceUpdate();
     },
 
     applySearchFilter: function(list, filter) {
         if (filter === "") return list;
         return list.filter((room) => {
-            return room.name && room.name.toLowerCase().indexOf(filter.toLowerCase()) >= 0
+          return room.name && room.name.toLowerCase().indexOf(filter.toLowerCase()) >= 0;
         });
     },
 
     // The header is collapsable if it is hidden or not stuck
     // The dataset elements are added in the RoomList _initAndPositionStickyHeaders method
     isCollapsableOnClick: function() {
-        var stuck = this.refs.header.dataset.stuck;
+        var stuck = this.refs.header.refs.header.dataset.stuck;
         if (this.state.hidden || stuck === undefined || stuck === "none") {
             return true;
         } else {
@@ -142,14 +151,15 @@ var RoomSubList = React.createClass({
             this.props.onHeaderClick(isHidden);
         } else {
             // The header is stuck, so the click is to be interpreted as a scroll to the header
-            this.props.onHeaderClick(this.state.hidden, this.refs.header.dataset.originalPosition);
+            this.props.onHeaderClick(this.state.hidden, this.refs.header.refs.header.dataset.originalPosition);
         }
     },
 
-    onRoomTileClick(roomId) {
+    onRoomTileClick(roomId, ev) {
         dis.dispatch({
-            action: 'view_room',
-            room_id: roomId,
+          action: 'view_room',
+          room_id: roomId,
+          clear_search: (ev && (ev.keyCode == 13 || ev.keyCode == 32))
         });
     },
 
@@ -359,7 +369,6 @@ var RoomSubList = React.createClass({
         var self = this;
         var DNDRoomTile = sdk.getComponent("rooms.DNDRoomTile");
         return this.state.sortedList.map(function(room) {
-            var selected = room.roomId == self.props.selectedRoom;
             // XXX: is it evil to pass in self as a prop to RoomTile?
             return (
                 <DNDRoomTile
@@ -367,9 +376,7 @@ var RoomSubList = React.createClass({
                     roomSubList={ self }
                     key={ room.roomId }
                     collapsed={ self.props.collapsed || false}
-                    selected={ selected }
-                    unread={ Unread.doesRoomHaveUnreadMessages(room) }
-                    highlight={ room.getUnreadNotificationCount('highlight') > 0 || self.props.label === 'Invites' }
+                    selectedRoom={ self.props.selectedRoom }
                     isInvite={ self.props.label === 'Invites' }
                     refreshSubList={ self._updateSubListCount }
                     incomingCall={ null }
@@ -377,70 +384,6 @@ var RoomSubList = React.createClass({
                 />
             );
         });
-    },
-
-    _getHeaderJsx: function() {
-        var TintableSvg = sdk.getComponent("elements.TintableSvg");
-
-        var subListNotifications = this.roomNotificationCount();
-        var subListNotifCount = subListNotifications[0];
-        var subListNotifHighlight = subListNotifications[1];
-
-        var roomCount = this.props.list.length > 0 ? this.props.list.length : '';
-
-        var chevronClasses = classNames({
-            'mx_RoomSubList_chevron': true,
-            'mx_RoomSubList_chevronRight': this.state.hidden,
-            'mx_RoomSubList_chevronDown': !this.state.hidden,
-        });
-
-        var badgeClasses = classNames({
-            'mx_RoomSubList_badge': true,
-            'mx_RoomSubList_badgeHighlight': subListNotifHighlight,
-        });
-
-        var badge;
-        if (subListNotifCount > 0) {
-            badge = <div className={badgeClasses}>{ FormattingUtils.formatCount(subListNotifCount) }</div>;
-        }
-
-        // When collapsed, allow a long hover on the header to show user
-        // the full tag name and room count
-        var title;
-        if (this.props.collapsed) {
-            title = this.props.label;
-            if (roomCount !== '') {
-                title += " [" + roomCount + "]";
-            }
-        }
-
-        var incomingCall;
-        if (this.props.incomingCall) {
-            var self = this;
-            // Check if the incoming call is for this section
-            var incomingCallRoom = this.props.list.filter(function(room) {
-                return self.props.incomingCall.roomId === room.roomId;
-            });
-
-            if (incomingCallRoom.length === 1) {
-                var IncomingCallBox = sdk.getComponent("voip.IncomingCallBox");
-                incomingCall = <IncomingCallBox className="mx_RoomSubList_incomingCall" incomingCall={ this.props.incomingCall }/>;
-            }
-        }
-
-        var tabindex = this.props.searchFilter === "" ? "0" : "-1";
-
-        return (
-            <div className="mx_RoomSubList_labelContainer" title={ title } ref="header">
-                <AccessibleButton onClick={ this.onClick } className="mx_RoomSubList_label" tabIndex={tabindex}>
-                    { this.props.collapsed ? '' : this.props.label }
-                    <div className="mx_RoomSubList_roomCount">{ roomCount }</div>
-                    <div className={chevronClasses}></div>
-                    { badge }
-                    { incomingCall }
-                </AccessibleButton>
-            </div>
-        );
     },
 
     _createOverflowTile: function(overflowCount, totalCount) {
@@ -456,7 +399,7 @@ var RoomSubList = React.createClass({
         var badgeClasses = classNames({
             'mx_RoomSubList_moreBadge': true,
             'mx_RoomSubList_moreBadgeNotify': overflowNotifCount && !this.props.collapsed,
-            'mx_RoomSubList_moreBadgeHighlight': overflowNotifHighlight && !this.props.collapsed,
+            'mx_RoomSubList_moreBadgeHighlight': overflowNotifHighlight && !this.props.collapsed
         });
 
         return (
@@ -532,6 +475,14 @@ var RoomSubList = React.createClass({
             target = <RoomDropTarget label={ 'Drop here to ' + this.props.verb }/>;
         }
 
+        var roomCount = this.props.list.length > 0 ? this.props.list.length : '';
+        var isInvited;
+        if (this.props.incomingCallRoom) {
+          this.props.list.find(room => {
+            return this.props.incomingCallRoom.roomId === room.roomId;
+          }) ? true : false;
+        }
+
         if (this.state.sortedList.length > 0 || this.props.editable) {
             var subList;
             var classes = "mx_RoomSubList";
@@ -549,19 +500,42 @@ var RoomSubList = React.createClass({
             }
 
             return connectDropTarget(
-                <div>
-                    { this._getHeaderJsx() }
-                    { subList }
-                </div>
+              <div>
+                <RoomSubListHeader
+                  refs='header'
+                  label={ this.props.label }
+                  tagName={ this.props.tagName }
+                  roomCount={ roomCount }
+                  collapsed={ this.props.collapsed }
+                  hidden={ this.state.hidden }
+                  isInvited={ isInvited }
+                  roomNotification={ this.roomNotificationCount() }
+                  onClick={ this.onClick }
+                  onHeaderClick={ this.props.onHeaderClick }
+                />
+                { subList }
+              </div>
             );
         }
         else {
             var Loader = sdk.getComponent("elements.Spinner");
             return (
-                <div className="mx_RoomSubList">
-                    { this.props.alwaysShowHeader ? this._getHeaderJsx() : undefined }
-                    { (this.props.showSpinner && !this.state.hidden) ? <Loader /> : undefined }
-                </div>
+              <div className="mx_RoomSubList">
+                { this.props.alwaysShowHeader ?
+                  <RoomSubListHeader
+                    label={ this.props.label }
+                    tagName={ this.props.tagName }
+                    roomCount={ roomCount }
+                    collapsed={ this.props.collapsed }
+                    hidden={ this.state.hidden }
+                    isInvited={ isInvited }
+                    roomNotification={ this.roomNotificationCount() }
+                    onClick={ this.onClick }
+                    onHeaderClick={ this.props.onHeaderClick }
+                  /> : undefined
+                }
+                { (this.props.showSpinner && !this.state.hidden) ? <Loader /> : undefined }
+              </div>
             );
         }
     }
